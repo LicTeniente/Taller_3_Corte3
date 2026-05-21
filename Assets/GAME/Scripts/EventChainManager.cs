@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// ── EventChainManager ────────
+// ── EventChainManagerP ────────
 public class EventChainManager : MonoBehaviour
 {
     public static EventChainManager Instance;
@@ -32,7 +32,7 @@ public class EventChainManager : MonoBehaviour
     public ParticleSystem portal1Particles;
     public Light portal1Light;
     public AudioClip portal1Sound;
-    public string scene2Name = "CamaraDeActivacion";
+    public string scene2Name = "CamaraActivacion";
 
     // ── Portal Escena 2 ──
     [Header("Portal Escena 2 → Victoria")]
