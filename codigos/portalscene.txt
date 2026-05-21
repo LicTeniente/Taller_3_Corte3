@@ -21,6 +21,7 @@ public class PortalScene1 : MonoBehaviour
     public CanvasGroup fadeCanvasGroup;
 
     bool active;
+    bool transitioning;
     AudioSource audioSource;
 
     void Awake()
