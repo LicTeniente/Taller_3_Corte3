@@ -1,0 +1,62 @@
+using System.Collections;
+using UnityEngine;
+
+// ── ArtifactPickup ──────────────────────────────────────────
+public class ArtifactPickup : MonoBehaviour
+{
+    public AudioClip pickupSound;
+
+    AudioSource audioSource;
+    bool collected;
+
+    void Start()
+    {
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.isTrigger = true;
+
+        audioSource = gameObject.AddComponent<AudioSource>();
+        audioSource.playOnAwake = false;
+        audioSource.spatialBlend = 1f;
+
+        // Configurar transparencia para fade-out
+        Renderer rend = GetComponent<Renderer>();
+        if (rend != null)
+        {
+            Material mat = new Material(rend.material);
+            mat.SetFloat("_Mode", 3);
+            mat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            mat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            mat.SetInt("_ZWrite", 0);
+            mat.DisableKeyword("_ALPHATEST_ON");
+            mat.EnableKeyword("_ALPHABLEND_ON");
+            mat.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            mat.renderQueue = 3000;
+            rend.material = mat;
+        }
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (collected || !other.CompareTag("Player")) return;
+        collected = true;
+        if (pickupSound != null) audioSource.PlayOneShot(pickupSound);
+        GameManager.Instance?.CollectArtifact();
+        HUDManager.Instance?.ShowPickupFeedback();
+        StartCoroutine(FadeOut());
+    }
+
+    IEnumerator FadeOut()
+    {
+        Renderer rend = GetComponent<Renderer>();
+        if (rend == null) { Destroy(gameObject); yield break; }
+        Color color = rend.material.color;
+        float elapsed = 0f;
+        while (elapsed < 0.5f)
+        {
+            elapsed += Time.deltaTime;
+            rend.material.color = new Color(color.r, color.g, color.b, Mathf.Lerp(1f, 0f, elapsed / 0.5f));
+            yield return null;
+        }
+        Destroy(gameObject);
+    }
+}
