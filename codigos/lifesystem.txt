@@ -1,0 +1,112 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class LifeSystem : MonoBehaviour
+{
+    public static LifeSystem Instance;
+
+    [Header("Respawn")]
+    public Transform spawnPoint;
+
+    [Header("Efectos de daño")]
+    public Image damageOverlay;
+    public AudioClip damageSound;
+    public float cameraShakeIntensity = 0.15f;
+    public float cameraShakeDuration = 0.3f;
+
+    AudioSource audioSource;
+    Transform cameraTransform;
+    Vector3 cameraOriginalPosition;
+    bool invincible;
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
+
+        cameraTransform = Camera.main?.transform;
+        if (cameraTransform != null)
+            cameraOriginalPosition = cameraTransform.localPosition;
+
+        if (damageOverlay != null)
+            damageOverlay.color = new Color(1f, 0f, 0f, 0f);
+    }
+
+    public void TakeDamage()
+    {
+        if (invincible) return;
+
+        if (damageSound != null)
+            audioSource.PlayOneShot(damageSound);
+
+        GameManager.Instance?.TakeDamage();
+
+        if (GameManager.Instance != null && GameManager.Instance.lives > 0)
+        {
+            StartCoroutine(DamageRoutine());
+            Respawn();
+        }
+    }
+
+    void Respawn()
+    {
+        CharacterController cc = GetComponent<CharacterController>();
+        if (cc != null) cc.enabled = false;
+
+        transform.position = spawnPoint != null ? spawnPoint.position : Vector3.zero;
+        transform.rotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
+
+        if (cc != null) cc.enabled = true;
+    }
+
+    IEnumerator DamageRoutine()
+    {
+        invincible = true;
+
+        if (damageOverlay != null)
+        {
+            damageOverlay.color = new Color(1f, 0f, 0f, 0.45f);
+        }
+
+        if (cameraTransform != null)
+            StartCoroutine(ShakeCamera());
+
+        yield return new WaitForSeconds(0.4f);
+
+        if (damageOverlay != null)
+        {
+            float t = 0f;
+            while (t < 0.3f)
+            {
+                t += Time.deltaTime;
+                float a = Mathf.Lerp(0.45f, 0f, t / 0.3f);
+                damageOverlay.color = new Color(1f, 0f, 0f, a);
+                yield return null;
+            }
+            damageOverlay.color = new Color(1f, 0f, 0f, 0f);
+        }
+
+        yield return new WaitForSeconds(1.5f);
+        invincible = false;
+    }
+
+    IEnumerator ShakeCamera()
+    {
+        float elapsed = 0f;
+        while (elapsed < cameraShakeDuration)
+        {
+            elapsed += Time.deltaTime;
+            Vector3 offset = Random.insideUnitSphere * cameraShakeIntensity;
+            cameraTransform.localPosition = cameraOriginalPosition + offset;
+            yield return null;
+        }
+        cameraTransform.localPosition = cameraOriginalPosition;
+    }
+}

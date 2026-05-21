@@ -1,0 +1,123 @@
+using System.Collections;
+using UnityEngine;
+using TMPro;
+
+public class ObjectGrabber : MonoBehaviour
+{
+    [Header("Agarre")]
+    public float grabRange = 3f;
+    public Vector3 holdOffset = new Vector3(0f, 0.8f, 1.5f);
+
+    [Header("UI")]
+    public TextMeshProUGUI wrongZoneMessage;
+    public TextMeshProUGUI holdingText;
+
+    public GrabbableObject HeldObject { get; private set; }
+
+    void Start()
+    {
+        if (wrongZoneMessage != null) wrongZoneMessage.gameObject.SetActive(false);
+        if (holdingText != null) holdingText.gameObject.SetActive(false);
+    }
+
+    void Update()
+    {
+        if (Input.GetMouseButtonDown(0))
+        {
+            if (HeldObject == null)
+                TryGrab();
+            else
+                TryDrop();
+        }
+
+        if (HeldObject != null)
+            HeldObject.transform.position = transform.TransformPoint(holdOffset);
+    }
+
+    void TryGrab()
+    {
+        Collider[] nearby = Physics.OverlapSphere(transform.position, grabRange);
+        float closestDist = grabRange;
+        GrabbableObject closest = null;
+
+        foreach (var col in nearby)
+        {
+            GrabbableObject g = col.GetComponent<GrabbableObject>();
+            if (g == null) continue;
+            float dist = Vector3.Distance(transform.position, g.transform.position);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                closest = g;
+            }
+        }
+
+        if (closest != null)
+        {
+            HeldObject = closest;
+            HeldObject.SetHeld(true);
+            if (holdingText != null)
+            {
+                holdingText.text = $"Sosteniendo: {HeldObject.objectType}";
+                holdingText.gameObject.SetActive(true);
+            }
+        }
+    }
+
+    void TryDrop()
+    {
+        SocketZone nearestSocket = GetNearestSocket();
+
+        if (nearestSocket != null && nearestSocket.Accepts(HeldObject))
+        {
+            nearestSocket.PlaceObject(HeldObject);
+            HeldObject = null;
+        }
+        else
+        {
+            if (nearestSocket != null)
+                nearestSocket.RejectObject();
+
+            GameManager.Instance?.RegisterFailedAttempt();
+            ShowWrongZone();
+            HeldObject.BounceBack(transform.position);
+            HeldObject = null;
+        }
+
+        if (holdingText != null)
+            holdingText.gameObject.SetActive(false);
+    }
+
+    SocketZone GetNearestSocket()
+    {
+        SocketZone[] sockets = FindObjectsOfType<SocketZone>();
+        SocketZone nearest = null;
+        float minDist = 2.5f;
+
+        foreach (var s in sockets)
+        {
+            float dist = Vector3.Distance(transform.position, s.transform.position);
+            if (dist < minDist)
+            {
+                minDist = dist;
+                nearest = s;
+            }
+        }
+        return nearest;
+    }
+
+    void ShowWrongZone()
+    {
+        if (wrongZoneMessage == null) return;
+        StopCoroutine("HideWrongZoneRoutine");
+        StartCoroutine("HideWrongZoneRoutine");
+    }
+
+    IEnumerator HideWrongZoneRoutine()
+    {
+        wrongZoneMessage.text = "Zona incorrecta";
+        wrongZoneMessage.gameObject.SetActive(true);
+        yield return new WaitForSeconds(2f);
+        wrongZoneMessage.gameObject.SetActive(false);
+    }
+}

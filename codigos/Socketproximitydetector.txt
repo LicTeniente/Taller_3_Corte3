@@ -1,0 +1,33 @@
+using UnityEngine;
+
+public class SocketProximityDetector : MonoBehaviour
+{
+    public float detectionRadius = 2.5f;
+
+    ObjectGrabber playerGrabber;
+    SocketZone[] sockets;
+
+    void Start()
+    {
+        playerGrabber = FindObjectOfType<ObjectGrabber>();
+        sockets = FindObjectsOfType<SocketZone>();
+    }
+
+    void Update()
+    {
+        if (playerGrabber == null) return;
+
+        GrabbableObject held = playerGrabber.HeldObject;
+
+        foreach (var socket in sockets)
+        {
+            if (socket == null) continue;
+            float dist = Vector3.Distance(playerGrabber.transform.position, socket.transform.position);
+
+            if (dist <= detectionRadius && held != null && socket.Accepts(held))
+                socket.ShowReady();
+            else
+                socket.HideReady();
+        }
+    }
+}

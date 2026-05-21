@@ -1,0 +1,95 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class PortalScene2 : MonoBehaviour
+{
+    public static PortalScene2 Instance;
+
+    [Header("Configuración")]
+    public string victorySceneName = "Victoria";
+
+    [Header("Visual")]
+    public GameObject portalMesh;
+    public ParticleSystem portalParticles;
+    public Light portalLight;
+
+    [Header("Audio")]
+    public AudioClip epicSound;
+    public AudioClip whooshSound;
+
+    [Header("Transición")]
+    public CanvasGroup fadeCanvasGroup;
+
+    bool active;
+    bool transitioning;
+    AudioSource audioSource;
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
+
+        // Bug fix: null check antes de forzar isTrigger
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.isTrigger = true;
+
+        SetVisible(false);
+    }
+
+    public void Activate()
+    {
+        active = true;
+        SetVisible(true);
+        if (epicSound != null)
+            audioSource.PlayOneShot(epicSound);
+    }
+
+    void SetVisible(bool visible)
+    {
+        if (portalMesh != null) portalMesh.SetActive(visible);
+        if (portalLight != null) portalLight.enabled = visible;
+        if (visible && portalParticles != null) portalParticles.Play();
+        else if (!visible && portalParticles != null) portalParticles.Stop();
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (!active || transitioning) return;
+        if (!other.CompareTag("Player")) return;
+
+        transitioning = true;
+        StartCoroutine(GoToVictory());
+    }
+
+    IEnumerator GoToVictory()
+    {
+        if (whooshSound != null)
+            audioSource.PlayOneShot(whooshSound);
+
+        SaveLoadManager.Instance?.Save();
+
+        if (fadeCanvasGroup != null)
+        {
+            float t = 0f;
+            while (t < 1.5f)
+            {
+                t += Time.deltaTime;
+                fadeCanvasGroup.alpha = Mathf.Clamp01(t / 1.5f);
+                yield return null;
+            }
+        }
+        else
+        {
+            yield return new WaitForSeconds(1.5f);
+        }
+
+        SceneManager.LoadScene(victorySceneName);
+    }
+}
