@@ -1,0 +1,57 @@
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class ScoreManager : MonoBehaviour
+{
+    public static ScoreManager Instance;
+
+    [Header("UI Escena 2")]
+    public TextMeshProUGUI mechanismsText;
+    public Slider mechanismsBar;
+    public TextMeshProUGUI failedAttemptsText;
+    public TextMeshProUGUI timerText;
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void Start()
+    {
+        Refresh();
+    }
+
+    void Update()
+    {
+        UpdateTimer();
+    }
+
+    public void Refresh()
+    {
+        if (GameManager.Instance == null) return;
+
+        int activated = GameManager.Instance.mechanismsActivated;
+        int total = GameManager.Instance.totalMechanisms;
+        int failed = GameManager.Instance.failedAttempts;
+
+        if (mechanismsText != null)
+            mechanismsText.text = $"Mecanismos activados: {activated}/{total}";
+
+        if (mechanismsBar != null)
+            mechanismsBar.value = (float)activated / total;
+
+        if (failedAttemptsText != null)
+            failedAttemptsText.text = $"Intentos fallidos: {failed}";
+    }
+
+    void UpdateTimer()
+    {
+        if (timerText == null || GameManager.Instance == null) return;
+
+        float elapsed = GameManager.Instance.GetScene2Elapsed();
+        int minutes = (int)(elapsed / 60f);
+        int seconds = (int)(elapsed % 60f);
+        timerText.text = $"Tiempo: {minutes}:{seconds:D2}";
+    }
+}

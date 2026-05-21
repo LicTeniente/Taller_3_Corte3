@@ -1,0 +1,58 @@
+using UnityEngine;
+
+public class DangerZone : MonoBehaviour
+{
+    public enum ZoneType { Spikes, Void, Fire }
+
+    [Header("Tipo de zona")]
+    public ZoneType zoneType = ZoneType.Spikes;
+
+    [Header("Lava: daño continuo")]
+    public float fireDamageInterval = 2f;
+
+    float fireTimer;
+    bool playerInside;
+
+    void Start()
+    {
+        Collider col = GetComponent<Collider>();
+        if (col != null) col.isTrigger = true;
+    }
+
+    void OnTriggerEnter(Collider other)
+    {
+        if (!other.CompareTag("Player")) return;
+
+        if (zoneType == ZoneType.Spikes || zoneType == ZoneType.Void)
+        {
+            LifeSystem.Instance?.TakeDamage();
+        }
+        else if (zoneType == ZoneType.Fire)
+        {
+            playerInside = true;
+            fireTimer = 0f;
+            LifeSystem.Instance?.TakeDamage();
+        }
+    }
+
+    void OnTriggerStay(Collider other)
+    {
+        if (!other.CompareTag("Player")) return;
+
+        if (zoneType == ZoneType.Fire && playerInside)
+        {
+            fireTimer += Time.deltaTime;
+            if (fireTimer >= fireDamageInterval)
+            {
+                fireTimer = 0f;
+                LifeSystem.Instance?.TakeDamage();
+            }
+        }
+    }
+
+    void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Player"))
+            playerInside = false;
+    }
+}

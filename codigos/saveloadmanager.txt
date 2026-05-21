@@ -1,0 +1,139 @@
+using System;
+using System.IO;
+using UnityEngine;
+
+[Serializable]
+public class Scene1Data
+{
+    public int artifactsCollected;
+    public int totalArtifacts;
+    public int livesRemaining;
+    public int livesLost;
+    public int deathCount;
+    public bool completed;
+    public float completionTime;
+}
+
+[Serializable]
+public class Scene2Data
+{
+    public int objectsPlacedCorrectly;
+    public int totalObjectsToPlace;
+    public int failedAttempts;
+    public string[] eventsTriggered;
+    public bool portalUnlocked;
+    public bool completed;
+    public float completionTime;
+}
+
+[Serializable]
+public class SessionStats
+{
+    public float totalPlayTime;
+    public int totalAttempts;
+    public int gamesCompleted;
+}
+
+[Serializable]
+public class GameData
+{
+    public string playerName;
+    public string lastScenePlayed;
+    public string timestamp;
+    public Scene1Data scene1;
+    public Scene2Data scene2;
+    public SessionStats sessionStats;
+}
+
+public class SaveLoadManager : MonoBehaviour
+{
+    public static SaveLoadManager Instance;
+
+    string filePath;
+    GameData currentData;
+
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            filePath = Path.Combine(Application.persistentDataPath, "GameData.json");
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    public void Save()
+    {
+        if (GameManager.Instance == null) return;
+
+        GameManager gm = GameManager.Instance;
+        string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+
+        if (currentData == null) currentData = new GameData();
+
+        currentData.playerName = "Arqueólogo";
+        currentData.lastScenePlayed = currentScene;
+        currentData.timestamp = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss");
+
+        currentData.scene1 = new Scene1Data
+        {
+            artifactsCollected = gm.artifactsCollected,
+            totalArtifacts = gm.totalArtifacts,
+            livesRemaining = gm.lives,
+            livesLost = gm.livesLost,
+            deathCount = gm.deathCount,
+            completed = gm.CanUsePortal1(),
+            completionTime = gm.scene1CompletionTime > 0 ? gm.scene1CompletionTime : gm.GetScene1Elapsed()
+        };
+
+        currentData.scene2 = new Scene2Data
+        {
+            objectsPlacedCorrectly = gm.mechanismsActivated,
+            totalObjectsToPlace = gm.totalMechanisms,
+            failedAttempts = gm.failedAttempts,
+            eventsTriggered = GetTriggeredEventNames(gm.mechanismsActivated),
+            portalUnlocked = gm.CanUsePortal2(),
+            completed = gm.CanUsePortal2(),
+            completionTime = gm.GetScene2Elapsed()
+        };
+
+        float totalTime = gm.scene1CompletionTime + gm.GetScene2Elapsed();
+
+        currentData.sessionStats = new SessionStats
+        {
+            totalPlayTime = totalTime,
+            totalAttempts = gm.failedAttempts + gm.mechanismsActivated,
+            gamesCompleted = gm.CanUsePortal2() ? 1 : 0
+        };
+
+        string json = JsonUtility.ToJson(currentData, true);
+        File.WriteAllText(filePath, json);
+        Debug.Log("Guardado en: " + filePath);
+    }
+
+    public GameData Load()
+    {
+        if (!File.Exists(filePath))
+        {
+            Debug.Log("No se encontró archivo de guardado.");
+            return null;
+        }
+
+        string json = File.ReadAllText(filePath);
+        currentData = JsonUtility.FromJson<GameData>(json);
+        return currentData;
+    }
+
+    string[] GetTriggeredEventNames(int count)
+    {
+        string[] names = { "door_open", "platform_activate", "light_on", "gear_spin", "portal_unlocked" };
+        string[] result = new string[Mathf.Min(count, names.Length)];
+        for (int i = 0; i < result.Length; i++)
+            result[i] = names[i];
+        return result;
+    }
+}

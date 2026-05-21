@@ -1,0 +1,78 @@
+using UnityEngine;
+
+[RequireComponent(typeof(CharacterController))]
+public class PlayerController : MonoBehaviour
+{
+    [Header("Movimiento")]
+    public float walkSpeed = 4f;
+    public float runSpeed = 8f;
+    public float gravity = -20f;
+
+    [Header("Cámara")]
+    public Transform cameraHolder;
+    public float mouseSensitivity = 2f;
+    public float minVerticalAngle = -80f;
+    public float maxVerticalAngle = 80f;
+
+    CharacterController controller;
+    Animator animator;
+    float verticalVelocity;
+    float verticalLook;
+
+    void Start()
+    {
+        controller = GetComponent<CharacterController>();
+        animator = GetComponentInChildren<Animator>();
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    void Update()
+    {
+        Move();
+        RotateCamera();
+    }
+
+    void Move()
+    {
+        float h = Input.GetAxis("Horizontal");
+        float v = Input.GetAxis("Vertical");
+        bool sprinting = Input.GetKey(KeyCode.LeftShift);
+        float speed = sprinting ? runSpeed : walkSpeed;
+
+        Vector3 direction = transform.right * h + transform.forward * v;
+        direction.Normalize();
+
+        if (controller.isGrounded)
+            verticalVelocity = -2f;
+        else
+            verticalVelocity += gravity * Time.deltaTime;
+
+        Vector3 move = direction * speed;
+        move.y = verticalVelocity;
+        controller.Move(move * Time.deltaTime);
+
+        float magnitude = new Vector2(h, v).magnitude;
+
+        if (animator != null)
+        {
+            animator.SetFloat("Speed", magnitude * speed);
+            animator.SetBool("IsRunning", sprinting && magnitude > 0.1f);
+            animator.SetBool("IsGrounded", controller.isGrounded);
+        }
+    }
+
+    void RotateCamera()
+    {
+        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
+        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
+
+        transform.Rotate(Vector3.up * mouseX);
+
+        verticalLook -= mouseY;
+        verticalLook = Mathf.Clamp(verticalLook, minVerticalAngle, maxVerticalAngle);
+
+        if (cameraHolder != null)
+            cameraHolder.localRotation = Quaternion.Euler(verticalLook, 0f, 0f);
+    }
+}

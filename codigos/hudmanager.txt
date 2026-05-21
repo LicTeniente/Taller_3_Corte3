@@ -1,0 +1,109 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.UI;
+using TMPro;
+
+public class HUDManager : MonoBehaviour
+{
+    public static HUDManager Instance;
+
+    [Header("Artefactos")]
+    public TextMeshProUGUI artifactCountText;
+    public Slider artifactProgressBar;
+
+    [Header("Vidas")]
+    public TextMeshProUGUI livesText;
+
+    [Header("Estado")]
+    public TextMeshProUGUI statusText;
+
+    [Header("Popup de recolección")]
+    public TextMeshProUGUI pickupPopupText;
+
+    [Header("Game Over")]
+    public GameObject gameOverPanel;
+    public Button retryButton;
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void Start()
+    {
+        if (pickupPopupText != null)
+            pickupPopupText.gameObject.SetActive(false);
+
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(false);
+
+        if (retryButton != null)
+            retryButton.onClick.AddListener(RetryScene);
+
+        Refresh();
+    }
+
+    public void Refresh()
+    {
+        if (GameManager.Instance == null) return;
+
+        int collected = GameManager.Instance.artifactsCollected;
+        int total = GameManager.Instance.totalArtifacts;
+        int required = GameManager.Instance.artifactsRequired;
+        int lives = GameManager.Instance.lives;
+
+        if (artifactCountText != null)
+            artifactCountText.text = $"Artefactos: {collected}/{total}";
+
+        if (artifactProgressBar != null)
+            artifactProgressBar.value = (float)collected / total;
+
+        if (livesText != null)
+        {
+            string hearts = "";
+            for (int i = 0; i < lives; i++) hearts += "♥ ";
+            livesText.text = hearts.TrimEnd();
+        }
+
+        int remaining = Mathf.Max(0, required - collected);
+        if (statusText != null)
+        {
+            if (remaining > 0)
+                statusText.text = $"Recolecta {remaining} artefacto(s) más para continuar";
+            else
+                statusText.text = "¡Portal activo! Búscalo al noreste.";
+        }
+    }
+
+    public void ShowPickupFeedback()
+    {
+        StopAllCoroutines();
+        StartCoroutine(ShowPopup("[+] Artefacto recolectado"));
+    }
+
+    IEnumerator ShowPopup(string message)
+    {
+        if (pickupPopupText == null) yield break;
+        pickupPopupText.text = message;
+        pickupPopupText.gameObject.SetActive(true);
+        yield return new WaitForSeconds(2f);
+        pickupPopupText.gameObject.SetActive(false);
+    }
+
+    public void TriggerGameOver()
+    {
+        if (gameOverPanel != null)
+            gameOverPanel.SetActive(true);
+
+        Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    void RetryScene()
+    {
+        Time.timeScale = 1f;
+        UnityEngine.SceneManagement.SceneManager.LoadScene(
+            UnityEngine.SceneManagement.SceneManager.GetActiveScene().name);
+    }
+}

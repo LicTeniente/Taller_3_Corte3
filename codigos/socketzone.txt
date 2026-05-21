@@ -1,0 +1,113 @@
+using System.Collections;
+using UnityEngine;
+
+public class SocketZone : MonoBehaviour
+{
+    [Header("Configuración")]
+    public string acceptedType;
+    public int eventIndex;
+
+    [Header("Efectos visuales")]
+    public Renderer auraRenderer;
+    public Material readyMaterial;
+    public Material correctMaterial;
+    public Material wrongMaterial;
+    public Light socketLight;
+
+    [Header("Audio")]
+    public AudioClip correctSound;
+    public AudioClip wrongSound;
+    public AudioClip readySound;
+
+    bool filled;
+    AudioSource audioSource;
+    Material defaultMaterial;
+
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
+
+        if (socketLight != null) socketLight.enabled = false;
+        if (auraRenderer != null) defaultMaterial = auraRenderer.material;
+    }
+
+    public bool Accepts(GrabbableObject obj)
+    {
+        return !filled && obj != null && obj.objectType == acceptedType;
+    }
+
+    public void PlaceObject(GrabbableObject obj)
+    {
+        filled = true;
+
+        // Bug fix: primero llamamos SetHeld(false) para restablecer física,
+        // luego forzamos isKinematic manualmente para que quede fijo en el socket
+        obj.SetHeld(false);
+        Rigidbody rb = obj.GetComponent<Rigidbody>();
+        if (rb != null) rb.isKinematic = true;
+
+        Collider objCol = obj.GetComponent<Collider>();
+        if (objCol != null) objCol.enabled = false;
+
+        obj.transform.position = transform.position + Vector3.up * 0.1f;
+        obj.transform.rotation = Quaternion.identity;
+
+        if (correctSound != null) audioSource.PlayOneShot(correctSound);
+        if (socketLight != null) socketLight.enabled = true;
+        if (auraRenderer != null && correctMaterial != null)
+            auraRenderer.material = correctMaterial;
+
+        GameManager.Instance?.RegisterMechanism(acceptedType);
+        EventChainManager.Instance?.TriggerEvent(eventIndex);
+        StartCoroutine(AnimatePlace(obj.transform));
+    }
+
+    public void RejectObject()
+    {
+        GameManager.Instance?.RegisterFailedAttempt();
+        if (wrongSound != null) audioSource.PlayOneShot(wrongSound);
+        StartCoroutine(FlashWrong());
+    }
+
+    public void ShowReady()
+    {
+        if (filled) return;
+        if (auraRenderer != null && readyMaterial != null)
+            auraRenderer.material = readyMaterial;
+        if (readySound != null && !audioSource.isPlaying)
+            audioSource.PlayOneShot(readySound);
+    }
+
+    public void HideReady()
+    {
+        if (filled || auraRenderer == null || defaultMaterial == null) return;
+        auraRenderer.material = defaultMaterial;
+    }
+
+    IEnumerator AnimatePlace(Transform obj)
+    {
+        if (obj == null) yield break;
+        Vector3 start = obj.position;
+        Vector3 end = transform.position + Vector3.up * 0.1f;
+        float t = 0f;
+        while (t < 0.3f)
+        {
+            t += Time.deltaTime;
+            if (obj != null)
+                obj.position = Vector3.Lerp(start, end, t / 0.3f);
+            yield return null;
+        }
+    }
+
+    IEnumerator FlashWrong()
+    {
+        if (auraRenderer == null || wrongMaterial == null) yield break;
+        Material prev = auraRenderer.material;
+        auraRenderer.material = wrongMaterial;
+        yield return new WaitForSeconds(0.5f);
+        if (auraRenderer != null)
+            auraRenderer.material = filled ? correctMaterial : prev;
+    }
+}

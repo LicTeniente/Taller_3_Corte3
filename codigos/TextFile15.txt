@@ -1,0 +1,145 @@
+using System.Collections;
+using UnityEngine;
+
+public class EventChainManager : MonoBehaviour
+{
+    public static EventChainManager Instance;
+
+    [Header("Evento 1 - Puerta de Piedra")]
+    public Transform stoneDoor;
+    public AudioClip doorCreakSound;
+    public float doorOpenDistance = 4f;
+
+    [Header("Evento 2 - Plataforma Elevadora")]
+    public Transform elevator;
+    public float elevatorRiseDistance = 3f;
+
+    [Header("Evento 3 - Iluminación Mágica")]
+    public Light[] magicLights;
+    public float lightFadeDuration = 1.5f;
+    public float targetLightIntensity = 3f;
+
+    [Header("Evento 4 - Mecanismo Giratorio")]
+    public Transform gear;
+    public AudioClip gearSound;
+
+    [Header("Evento 5 - Portal Final")]
+    public PortalScene2 finalPortal;
+    public AudioClip epicPortalSound;
+
+    AudioSource audioSource;
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
+    void Start()
+    {
+        audioSource = GetComponent<AudioSource>();
+        if (audioSource == null)
+            audioSource = gameObject.AddComponent<AudioSource>();
+
+        foreach (var l in magicLights)
+        {
+            l.enabled = true;
+            l.intensity = 0f;
+        }
+    }
+
+    public void TriggerEvent(int index)
+    {
+        switch (index)
+        {
+            case 0: StartCoroutine(Event1_OpenDoor()); break;
+            case 1: StartCoroutine(Event2_RaisePlatform()); break;
+            case 2: StartCoroutine(Event3_LightsOn()); break;
+            case 3: StartCoroutine(Event4_SpinGear()); break;
+            case 4: break;
+        }
+    }
+
+    public void TriggerFinalPortal()
+    {
+        StartCoroutine(Event5_FinalPortal());
+    }
+
+    IEnumerator Event1_OpenDoor()
+    {
+        if (stoneDoor == null) yield break;
+
+        if (doorCreakSound != null) audioSource.PlayOneShot(doorCreakSound);
+
+        Vector3 start = stoneDoor.position;
+        Vector3 end = start + Vector3.up * doorOpenDistance;
+        float t = 0f;
+
+        while (t < 2f)
+        {
+            t += Time.deltaTime;
+            stoneDoor.position = Vector3.Lerp(start, end, t / 2f);
+            yield return null;
+        }
+
+        stoneDoor.position = end;
+    }
+
+    IEnumerator Event2_RaisePlatform()
+    {
+        if (elevator == null) yield break;
+
+        Vector3 start = elevator.position;
+        Vector3 end = start + Vector3.up * elevatorRiseDistance;
+        float t = 0f;
+
+        while (t < 2f)
+        {
+            t += Time.deltaTime;
+            elevator.position = Vector3.Lerp(start, end, t / 2f);
+            yield return null;
+        }
+
+        elevator.position = end;
+    }
+
+    IEnumerator Event3_LightsOn()
+    {
+        float t = 0f;
+        while (t < lightFadeDuration)
+        {
+            t += Time.deltaTime;
+            float intensity = Mathf.Lerp(0f, targetLightIntensity, t / lightFadeDuration);
+            foreach (var l in magicLights)
+                l.intensity = intensity;
+            yield return null;
+        }
+
+        foreach (var l in magicLights)
+            l.intensity = targetLightIntensity;
+    }
+
+    IEnumerator Event4_SpinGear()
+    {
+        if (gear == null) yield break;
+
+        if (gearSound != null) audioSource.PlayOneShot(gearSound);
+
+        float t = 0f;
+        float duration = 2f;
+
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            gear.Rotate(Vector3.up, 360f / duration * Time.deltaTime);
+            yield return null;
+        }
+    }
+
+    IEnumerator Event5_FinalPortal()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        if (finalPortal != null)
+            finalPortal.Activate();
+    }
+}

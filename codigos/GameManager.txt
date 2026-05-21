@@ -1,0 +1,99 @@
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class GameManager : MonoBehaviour
+{
+    public static GameManager Instance;
+
+    [Header("Escena 1")]
+    public int artifactsCollected = 0;
+    public int totalArtifacts = 10;
+    public int artifactsRequired = 6;
+    public int lives = 3;
+    public int livesLost = 0;
+    public int deathCount = 0;
+
+    [Header("Escena 2")]
+    public int mechanismsActivated = 0;
+    public int totalMechanisms = 5;
+    public int failedAttempts = 0;
+
+    [HideInInspector] public float scene1StartTime;
+    [HideInInspector] public float scene2StartTime;
+    [HideInInspector] public float scene1CompletionTime;
+
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            scene1StartTime = Time.time;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+
+    public void CollectArtifact()
+    {
+        artifactsCollected++;
+        HUDManager.Instance?.Refresh();
+
+        if (artifactsCollected >= artifactsRequired && lives >= 1)
+            PortalScene1.Instance?.Activate();
+    }
+
+    public void TakeDamage()
+    {
+        lives--;
+        livesLost++;
+        deathCount++;
+        HUDManager.Instance?.Refresh();
+
+        if (lives <= 0)
+            HUDManager.Instance?.TriggerGameOver();
+    }
+
+    public void RegisterMechanism(string eventName)
+    {
+        mechanismsActivated++;
+        ScoreManager.Instance?.Refresh();
+
+        if (mechanismsActivated >= totalMechanisms)
+            EventChainManager.Instance?.TriggerFinalPortal();
+    }
+
+    public void RegisterFailedAttempt()
+    {
+        failedAttempts++;
+        ScoreManager.Instance?.Refresh();
+    }
+
+    public bool CanUsePortal1()
+    {
+        return artifactsCollected >= artifactsRequired && lives >= 1;
+    }
+
+    public bool CanUsePortal2()
+    {
+        return mechanismsActivated >= totalMechanisms;
+    }
+
+    public float GetScene1Elapsed()
+    {
+        return Time.time - scene1StartTime;
+    }
+
+    public float GetScene2Elapsed()
+    {
+        return Time.time - scene2StartTime;
+    }
+
+    public void OnScene2Start()
+    {
+        scene1CompletionTime = GetScene1Elapsed();
+        scene2StartTime = Time.time;
+    }
+}
