@@ -2,7 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// ── EventChainManagerP ────────
+// ── EventChainManager + PortalScene1 + PortalScene2 ────────
 public class EventChainManager : MonoBehaviour
 {
     public static EventChainManager Instance;
@@ -32,7 +32,7 @@ public class EventChainManager : MonoBehaviour
     public ParticleSystem portal1Particles;
     public Light portal1Light;
     public AudioClip portal1Sound;
-    public string scene2Name = "CamaraActivacion";
+    public string scene2Name = "CamaraDeActivacion";
 
     // ── Portal Escena 2 ──
     [Header("Portal Escena 2 → Victoria")]
@@ -70,6 +70,7 @@ public class EventChainManager : MonoBehaviour
     {
         switch (index)
         {
+            case -1: break; // no hace nada
             case 0: StartCoroutine(Event1_OpenDoor()); break;
             case 1: StartCoroutine(Event2_RaisePlatform()); break;
             case 2: StartCoroutine(Event3_LightsOn()); break;
@@ -125,7 +126,16 @@ public class EventChainManager : MonoBehaviour
     IEnumerator Event2_RaisePlatform()
     {
         if (elevator == null) yield break;
-        yield return MoveOverTime(elevator, elevator.position + Vector3.up * elevatorRiseDistance, 2f);
+        Vector3 bottomPos = elevator.position;
+        Vector3 topPos = elevator.position + Vector3.up * elevatorRiseDistance;
+
+        while (true)
+        {
+            yield return MoveOverTime(elevator, topPos, 2f);
+            yield return new WaitForSeconds(1f);
+            yield return MoveOverTime(elevator, bottomPos, 2f);
+            yield return new WaitForSeconds(1f);
+        }
     }
 
     IEnumerator Event3_LightsOn()
@@ -144,10 +154,19 @@ public class EventChainManager : MonoBehaviour
     {
         if (gear == null) yield break;
         if (gearSound != null) audioSource.PlayOneShot(gearSound);
-        float t = 0f;
-        while (t < 2f) { t += Time.deltaTime; gear.Rotate(Vector3.up, 180f * Time.deltaTime); yield return null; }
-    }
 
+        Quaternion startRot = gear.rotation;
+        Quaternion endRot = startRot * Quaternion.Euler(0f, 90f, 0f);
+        float t = 0f;
+
+        while (t < 2f)
+        {
+            t += Time.deltaTime;
+            gear.rotation = Quaternion.Lerp(startRot, endRot, t / 2f);
+            yield return null;
+        }
+        gear.rotation = endRot;
+    }
     IEnumerator Event5_FinalPortal()
     {
         yield return new WaitForSeconds(0.5f);
