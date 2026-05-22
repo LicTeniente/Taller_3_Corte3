@@ -3,7 +3,7 @@ using UnityEngine;
 // ── DangerZone ──────────────────────────────────────────────
 public class DangerZone : MonoBehaviour
 {
-    public enum ZoneType { Spikes, Void, Fire }
+    public enum ZoneType { Spikes, Arrow, Fire }
     public ZoneType zoneType = ZoneType.Spikes;
     public float fireDamageInterval = 2f;
 
@@ -14,6 +14,7 @@ public class DangerZone : MonoBehaviour
 
     void OnTriggerEnter(Collider other)
     {
+        Debug.Log("Trigger: " + other.name + " tag: " + other.tag);
         if (!other.CompareTag("Player")) return;
         if (zoneType == ZoneType.Fire) { playerInside = true; fireTimer = 0f; }
         PlayerController.Instance?.TakeDamage();

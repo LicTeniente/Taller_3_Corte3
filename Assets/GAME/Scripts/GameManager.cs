@@ -45,6 +45,18 @@ public class GameManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
+    // ── Reset ──
+    public void ResetGame()
+    {
+        lives = 3;
+        livesLost = 0;
+        deathCount = 0;
+        artifactsCollected = 0;
+        mechanismsActivated = 0;
+        failedAttempts = 0;
+        scene1StartTime = Time.time;
+        HUDManager.Instance?.Refresh(); // ← agrega esto
+    }
     // ── Escena 1 ──
     public void CollectArtifact()
     {

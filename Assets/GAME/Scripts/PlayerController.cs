@@ -29,6 +29,9 @@ public class PlayerController : MonoBehaviour
     public float shakeIntensity = 0.15f;
     public float shakeDuration = 0.3f;
 
+    [Header("Salto")]
+    public float jumpHeight = 1.5f;
+
     // Agarre de objetos
     [Header("Agarre")]
     public float grabRange = 3f;
@@ -44,6 +47,7 @@ public class PlayerController : MonoBehaviour
     AudioSource audioSource;
     float verticalVelocity, verticalLook;
     bool invincible;
+    bool jumpRequested;
     Vector3 camOriginalPos;
     GrabbableObject heldObject;
 
@@ -69,9 +73,21 @@ public class PlayerController : MonoBehaviour
 
     // ── Callbacks del Input System ──
     public void OnMove(InputValue value) => moveInput = value.Get<Vector2>();
+
+    public void OnJump(InputValue value)
+    {
+        if (value.isPressed && controller.isGrounded)
+            jumpRequested = true;
+    }
+
     public void OnLook(InputValue value) => lookInput = value.Get<Vector2>();
     public void OnSprint(InputValue value) => isSprinting = value.isPressed;
-    public void OnFire(InputValue value) { if (value.isPressed) HandleGrab(); }
+    public void OnFire(InputValue value)
+    {
+        if (HUDManager.Instance != null && HUDManager.Instance.gameOverPanel != null
+            && HUDManager.Instance.gameOverPanel.activeSelf) return;
+        if (value.isPressed) HandleGrab();
+    }
 
     void Update()
     {
@@ -94,7 +110,19 @@ public class PlayerController : MonoBehaviour
         float speed = isSprinting ? runSpeed : walkSpeed;
         Vector3 dir = (transform.right * h + transform.forward * v).normalized;
 
-        verticalVelocity = controller.isGrounded ? -2f : verticalVelocity + gravity * Time.deltaTime;
+        // Gravedad
+        if (controller.isGrounded && verticalVelocity < 0)
+            verticalVelocity = -2f;
+        else
+            verticalVelocity += gravity * Time.deltaTime;
+
+        // Salto
+        if (jumpRequested)
+        {
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            jumpRequested = false;
+        }
+
         Vector3 move = dir * speed;
         move.y = verticalVelocity;
         controller.Move(move * Time.deltaTime);
@@ -196,7 +224,14 @@ public class PlayerController : MonoBehaviour
             StartCoroutine(DamageRoutine());
             Respawn();
         }
+        // Si no hay vidas, asegurar cursor visible
+        else if (GameManager.Instance != null && GameManager.Instance.lives <= 0)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
     }
+    
 
     void Respawn()
     {

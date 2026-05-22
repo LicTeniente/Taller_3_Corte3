@@ -36,21 +36,35 @@ public class HUDManager : MonoBehaviour
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (retryButton != null) retryButton.onClick.AddListener(RetryScene);
 
-        // Fade in al entrar a la escena
         if (fadePanel != null) StartCoroutine(FadeIn());
 
-        // Notificar inicio de escena 2
         if (SceneManager.GetActiveScene().name == "CamaraDeActivacion")
             GameManager.Instance?.OnScene2Start();
 
+        StartCoroutine(RefreshDelayed()); // ← cambia Refresh() por esto
+    }
+
+    IEnumerator RefreshDelayed()
+    {
+        yield return null; // espera un frame
         Refresh();
     }
 
-    void Update() => UpdateTimer();
+    void Update()
+    {
+        UpdateTimer();
 
-    // ── Refresh general (escena 1 y 2) ──
+        // Forzar cursor visible cuando el Game Over está activo
+        if (gameOverPanel != null && gameOverPanel.activeSelf)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+    }
+
     public void Refresh()
     {
+        Debug.Log($"Refresh! Vidas: {GameManager.Instance?.lives} | HUD Instance: {Instance}");
         if (GameManager.Instance == null) return;
         var gm = GameManager.Instance;
 
@@ -103,9 +117,12 @@ public class HUDManager : MonoBehaviour
         Cursor.visible = true;
     }
 
-    void RetryScene()
+    public void RetryScene()
     {
+        GameManager.Instance?.ResetGame();
         Time.timeScale = 1f;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -115,11 +132,17 @@ public class HUDManager : MonoBehaviour
         float t = 0f;
         while (t < fadeDuration) { t += Time.deltaTime; fadePanel.alpha = 1f - Mathf.Clamp01(t / fadeDuration); yield return null; }
         fadePanel.alpha = 0f;
+        fadePanel.blocksRaycasts = false;
+        fadePanel.interactable = false;
     }
 
     public IEnumerator FadeOut(float duration)
     {
         float t = 0f;
         while (t < duration) { t += Time.deltaTime; fadePanel.alpha = Mathf.Clamp01(t / duration); yield return null; }
+    }
+    void OnDestroy()
+    {
+        if (Instance == this) Instance = null;
     }
 }
