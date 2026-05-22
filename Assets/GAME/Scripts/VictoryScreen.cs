@@ -43,6 +43,6 @@ public class VictoryScreen : MonoBehaviour
     void PlayAgain()
     {
         if (GameManager.Instance != null) Destroy(GameManager.Instance.gameObject);
-        SceneManager.LoadScene("CamaraDeArtefactos");
+        SceneManager.LoadScene("CamaraArtefactos");
     }
 }

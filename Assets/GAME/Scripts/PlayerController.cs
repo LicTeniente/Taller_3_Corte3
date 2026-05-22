@@ -8,20 +8,17 @@ using TMPro;
 [RequireComponent(typeof(CharacterController))]
 public class PlayerController : MonoBehaviour
 {
-    // Movimiento
     [Header("Movimiento")]
     public float walkSpeed = 4f;
     public float runSpeed = 8f;
     public float gravity = -20f;
 
-    // Cámara
     [Header("Cámara")]
     public Transform cameraHolder;
     public float mouseSensitivity = 2f;
     public float minVerticalAngle = -80f;
     public float maxVerticalAngle = 80f;
 
-    // Respawn / daño
     [Header("Vida y Respawn")]
     public Transform spawnPoint;
     public Image damageOverlay;
@@ -32,7 +29,6 @@ public class PlayerController : MonoBehaviour
     [Header("Salto")]
     public float jumpHeight = 1.5f;
 
-    // Agarre de objetos
     [Header("Agarre")]
     public float grabRange = 3f;
     public Vector3 holdOffset = new Vector3(0f, 0.8f, 1.5f);
@@ -51,7 +47,6 @@ public class PlayerController : MonoBehaviour
     Vector3 camOriginalPos;
     GrabbableObject heldObject;
 
-    // Input System
     Vector2 moveInput;
     Vector2 lookInput;
     bool isSprinting;
@@ -60,6 +55,7 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
+        invincible = false;
         controller = GetComponent<CharacterController>();
         animator = GetComponentInChildren<Animator>();
         audioSource = GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
@@ -71,7 +67,6 @@ public class PlayerController : MonoBehaviour
         Cursor.visible = false;
     }
 
-    // ── Callbacks del Input System ──
     public void OnMove(InputValue value) => moveInput = value.Get<Vector2>();
 
     public void OnJump(InputValue value)
@@ -82,6 +77,7 @@ public class PlayerController : MonoBehaviour
 
     public void OnLook(InputValue value) => lookInput = value.Get<Vector2>();
     public void OnSprint(InputValue value) => isSprinting = value.isPressed;
+
     public void OnFire(InputValue value)
     {
         if (HUDManager.Instance != null && HUDManager.Instance.gameOverPanel != null
@@ -102,7 +98,6 @@ public class PlayerController : MonoBehaviour
             heldObject.transform.position = transform.TransformPoint(holdOffset);
     }
 
-    // ── Movimiento ──
     void Move()
     {
         float h = moveInput.x;
@@ -110,13 +105,11 @@ public class PlayerController : MonoBehaviour
         float speed = isSprinting ? runSpeed : walkSpeed;
         Vector3 dir = (transform.right * h + transform.forward * v).normalized;
 
-        // Gravedad
         if (controller.isGrounded && verticalVelocity < 0)
             verticalVelocity = -2f;
         else
             verticalVelocity += gravity * Time.deltaTime;
 
-        // Salto
         if (jumpRequested)
         {
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
@@ -136,7 +129,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ── Cámara ──
     void RotateCamera()
     {
         float mx = lookInput.x * mouseSensitivity;
@@ -147,7 +139,6 @@ public class PlayerController : MonoBehaviour
             cameraHolder.localRotation = Quaternion.Euler(verticalLook, 0f, 0f);
     }
 
-    // ── Agarre ──
     void HandleGrab()
     {
         if (heldObject == null) TryGrab(); else TryDrop();
@@ -213,7 +204,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // ── Vida / Daño ──
     public void TakeDamage()
     {
         if (invincible) return;
@@ -224,14 +214,7 @@ public class PlayerController : MonoBehaviour
             StartCoroutine(DamageRoutine());
             Respawn();
         }
-        // Si no hay vidas, asegurar cursor visible
-        else if (GameManager.Instance != null && GameManager.Instance.lives <= 0)
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
     }
-    
 
     void Respawn()
     {

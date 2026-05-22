@@ -4,7 +4,6 @@ using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
-// ── HUDManager ────────────────
 public class HUDManager : MonoBehaviour
 {
     public static HUDManager Instance;
@@ -30,31 +29,22 @@ public class HUDManager : MonoBehaviour
 
     void Awake() => Instance = this;
 
+    void OnDestroy() { if (Instance == this) Instance = null; }
+
     void Start()
     {
         if (pickupPopupText != null) pickupPopupText.gameObject.SetActive(false);
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (retryButton != null) retryButton.onClick.AddListener(RetryScene);
-
         if (fadePanel != null) StartCoroutine(FadeIn());
-
-        if (SceneManager.GetActiveScene().name == "CamaraDeActivacion")
+        if (SceneManager.GetActiveScene().name == "CamaraActivacion")
             GameManager.Instance?.OnScene2Start();
-
-        StartCoroutine(RefreshDelayed()); // ← cambia Refresh() por esto
-    }
-
-    IEnumerator RefreshDelayed()
-    {
-        yield return null; // espera un frame
         Refresh();
     }
 
     void Update()
     {
         UpdateTimer();
-
-        // Forzar cursor visible cuando el Game Over está activo
         if (gameOverPanel != null && gameOverPanel.activeSelf)
         {
             Cursor.lockState = CursorLockMode.None;
@@ -64,11 +54,9 @@ public class HUDManager : MonoBehaviour
 
     public void Refresh()
     {
-        Debug.Log($"Refresh! Vidas: {GameManager.Instance?.lives} | HUD Instance: {Instance}");
         if (GameManager.Instance == null) return;
         var gm = GameManager.Instance;
 
-        // Escena 1
         if (artifactCountText != null) artifactCountText.text = $"Artefactos: {gm.artifactsCollected}/{gm.totalArtifacts}";
         if (artifactProgressBar != null) artifactProgressBar.value = (float)gm.artifactsCollected / gm.totalArtifacts;
         if (livesText != null)
@@ -81,7 +69,6 @@ public class HUDManager : MonoBehaviour
         if (statusText != null)
             statusText.text = remaining > 0 ? $"Recolecta {remaining} artefacto(s) más para continuar" : "¡Portal activo! Búscalo al noreste.";
 
-        // Escena 2
         if (mechanismsText != null) mechanismsText.text = $"Mecanismos activados: {gm.mechanismsActivated}/{gm.totalMechanisms}";
         if (mechanismsBar != null) mechanismsBar.value = (float)gm.mechanismsActivated / gm.totalMechanisms;
         if (failedAttemptsText != null) failedAttemptsText.text = $"Intentos fallidos: {gm.failedAttempts}";
@@ -119,10 +106,10 @@ public class HUDManager : MonoBehaviour
 
     public void RetryScene()
     {
-        GameManager.Instance?.ResetGame();
         Time.timeScale = 1f;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        Destroy(GameManager.Instance.gameObject);
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
@@ -140,9 +127,5 @@ public class HUDManager : MonoBehaviour
     {
         float t = 0f;
         while (t < duration) { t += Time.deltaTime; fadePanel.alpha = Mathf.Clamp01(t / duration); yield return null; }
-    }
-    void OnDestroy()
-    {
-        if (Instance == this) Instance = null;
     }
 }

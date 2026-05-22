@@ -4,13 +4,11 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// ── Datos JSON ──────────────────────────────────────────────
 [Serializable] public class Scene1Data { public int artifactsCollected, totalArtifacts, livesRemaining, livesLost, deathCount; public bool completed; public float completionTime; }
 [Serializable] public class Scene2Data { public int objectsPlacedCorrectly, totalObjectsToPlace, failedAttempts; public string[] eventsTriggered; public bool portalUnlocked, completed; public float completionTime; }
 [Serializable] public class SessionStats { public float totalPlayTime; public int totalAttempts, gamesCompleted; }
 [Serializable] public class GameData { public string playerName, lastScenePlayed, timestamp; public Scene1Data scene1; public Scene2Data scene2; public SessionStats sessionStats; }
 
-// ── GameManager ──────────────────────────
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
@@ -45,19 +43,6 @@ public class GameManager : MonoBehaviour
         else Destroy(gameObject);
     }
 
-    // ── Reset ──
-    public void ResetGame()
-    {
-        lives = 3;
-        livesLost = 0;
-        deathCount = 0;
-        artifactsCollected = 0;
-        mechanismsActivated = 0;
-        failedAttempts = 0;
-        scene1StartTime = Time.time;
-        HUDManager.Instance?.Refresh(); // ← agrega esto
-    }
-    // ── Escena 1 ──
     public void CollectArtifact()
     {
         artifactsCollected++;
@@ -74,7 +59,6 @@ public class GameManager : MonoBehaviour
 
     public bool CanUsePortal1() => artifactsCollected >= artifactsRequired && lives >= 1;
 
-    // ── Escena 2 ──
     public void RegisterMechanism(string eventName)
     {
         mechanismsActivated++;
@@ -90,12 +74,10 @@ public class GameManager : MonoBehaviour
 
     public bool CanUsePortal2() => mechanismsActivated >= totalMechanisms;
 
-    // ── Tiempos ──
     public float GetScene1Elapsed() => Time.time - scene1StartTime;
     public float GetScene2Elapsed() => Time.time - scene2StartTime;
     public void OnScene2Start() { scene1CompletionTime = GetScene1Elapsed(); scene2StartTime = Time.time; }
 
-    // ── Guardar / Cargar JSON ──
     public void Save()
     {
         if (currentData == null) currentData = new GameData();
@@ -138,7 +120,6 @@ public class GameManager : MonoBehaviour
         };
 
         File.WriteAllText(filePath, JsonUtility.ToJson(currentData, true));
-        Debug.Log("Guardado en: " + filePath);
     }
 
     public GameData Load()

@@ -2,12 +2,10 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-// ── EventChainManager + PortalScene1 + PortalScene2 ────────
 public class EventChainManager : MonoBehaviour
 {
     public static EventChainManager Instance;
 
-    // ── Eventos ──
     [Header("Evento 1 - Puerta de Piedra")]
     public Transform stoneDoor;
     public AudioClip doorCreakSound;
@@ -26,15 +24,13 @@ public class EventChainManager : MonoBehaviour
     public Transform gear;
     public AudioClip gearSound;
 
-    // ── Portal Escena 1 ──
     [Header("Portal Escena 1 → 2")]
     public GameObject portal1Mesh;
     public ParticleSystem portal1Particles;
     public Light portal1Light;
     public AudioClip portal1Sound;
-    public string scene2Name = "CamaraDeActivacion";
+    public string scene2Name = "CamaraActivacion";
 
-    // ── Portal Escena 2 ──
     [Header("Portal Escena 2 → Victoria")]
     public GameObject portal2Mesh;
     public ParticleSystem portal2Particles;
@@ -59,18 +55,19 @@ public class EventChainManager : MonoBehaviour
         SetPortalVisible(portal2Mesh, portal2Particles, portal2Light, false);
     }
 
-    // ── Activar Portal 1 (llamado desde GameManager) ──
-    public void ActivateP1() { portal1Active = true; SetPortalVisible(portal1Mesh, portal1Particles, portal1Light, true); }
+    public void ActivateP1()
+    {
+        portal1Active = true;
+        SetPortalVisible(portal1Mesh, portal1Particles, portal1Light, true);
+    }
 
-    // ── Activar Portal 2 ──
     public void TriggerFinalPortal() => StartCoroutine(Event5_FinalPortal());
 
-    // ── Trigger de eventos por índice ──
     public void TriggerEvent(int index)
     {
         switch (index)
         {
-            case -1: break; // no hace nada
+            case -1: break;
             case 0: StartCoroutine(Event1_OpenDoor()); break;
             case 1: StartCoroutine(Event2_RaisePlatform()); break;
             case 2: StartCoroutine(Event3_LightsOn()); break;
@@ -78,27 +75,21 @@ public class EventChainManager : MonoBehaviour
         }
     }
 
-    // ── Detección de colisión con portales ──
-    void OnTriggerEnter(Collider other)
+    // ── Portales ──
+    public void TryPortal1()
     {
-        if (transitioning || !other.CompareTag("Player")) return;
-
-        // Portal 1
-        if (portal1Active && portal1Mesh != null && IsNear(portal1Mesh.transform, other.transform, 2f))
-        {
-            if (GameManager.Instance == null || !GameManager.Instance.CanUsePortal1()) return;
-            transitioning = true;
-            StartCoroutine(GoToScene(scene2Name, portal1Sound, 2f));
-        }
-        // Portal 2
-        else if (portal2Active && portal2Mesh != null && IsNear(portal2Mesh.transform, other.transform, 2f))
-        {
-            transitioning = true;
-            StartCoroutine(GoToScene(victorySceneName, portal2WhooshSound, 1.5f));
-        }
+        if (transitioning || !portal1Active) return;
+        if (GameManager.Instance == null || !GameManager.Instance.CanUsePortal1()) return;
+        transitioning = true;
+        StartCoroutine(GoToScene(scene2Name, portal1Sound, 2f));
     }
 
-    bool IsNear(Transform a, Transform b, float range) => Vector3.Distance(a.position, b.position) <= range;
+    public void TryPortal2()
+    {
+        if (transitioning || !portal2Active) return;
+        transitioning = true;
+        StartCoroutine(GoToScene(victorySceneName, portal2WhooshSound, 1.5f));
+    }
 
     IEnumerator GoToScene(string sceneName, AudioClip sound, float fadeDuration)
     {
@@ -167,6 +158,7 @@ public class EventChainManager : MonoBehaviour
         }
         gear.rotation = endRot;
     }
+
     IEnumerator Event5_FinalPortal()
     {
         yield return new WaitForSeconds(0.5f);
@@ -188,4 +180,4 @@ public class EventChainManager : MonoBehaviour
         if (light != null) light.enabled = visible;
         if (ps != null) { if (visible) ps.Play(); else ps.Stop(); }
     }
-}
+}   
