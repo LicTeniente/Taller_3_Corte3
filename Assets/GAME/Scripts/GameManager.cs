@@ -46,14 +46,16 @@ public class GameManager : MonoBehaviour
     public void CollectArtifact()
     {
         artifactsCollected++;
-        HUDManager.Instance?.Refresh();
+        var hud = FindFirstObjectByType<HUDManager>();
+        if (hud != null) hud.Refresh();
         if (CanUsePortal1()) EventChainManager.Instance?.ActivateP1();
     }
 
     public void TakeDamage()
     {
         lives--; livesLost++; deathCount++;
-        HUDManager.Instance?.Refresh();
+        var hud = FindFirstObjectByType<HUDManager>();
+        if (hud != null) hud.Refresh();
         if (lives <= 0) HUDManager.Instance?.TriggerGameOver();
     }
 
@@ -62,14 +64,16 @@ public class GameManager : MonoBehaviour
     public void RegisterMechanism(string eventName)
     {
         mechanismsActivated++;
-        HUDManager.Instance?.Refresh();
+        Debug.Log("Mecanismo registrado: " + mechanismsActivated + "/" + totalMechanisms);
+        var hud = FindFirstObjectByType<HUDManager>();
+        if (hud != null) hud.Refresh();
         if (CanUsePortal2()) EventChainManager.Instance?.TriggerFinalPortal();
     }
-
     public void RegisterFailedAttempt()
     {
         failedAttempts++;
-        HUDManager.Instance?.Refresh();
+        var hud = FindFirstObjectByType<HUDManager>();
+        if (hud != null) hud.Refresh();
     }
 
     public bool CanUsePortal2() => mechanismsActivated >= totalMechanisms;

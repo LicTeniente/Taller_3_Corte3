@@ -37,11 +37,18 @@ public class HUDManager : MonoBehaviour
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (retryButton != null) retryButton.onClick.AddListener(RetryScene);
         if (fadePanel != null) StartCoroutine(FadeIn());
+        StartCoroutine(InitAfterFrame());
+    }
+    IEnumerator InitAfterFrame()
+    {
+        yield return null;
+        Debug.Log("GameManager existe: " + (GameManager.Instance != null));
+        Debug.Log("Escena actual: " + SceneManager.GetActiveScene().name);
         if (SceneManager.GetActiveScene().name == "CamaraActivacion")
             GameManager.Instance?.OnScene2Start();
         Refresh();
+        Debug.Log("Mecanismos: " + GameManager.Instance?.mechanismsActivated);
     }
-
     void Update()
     {
         UpdateTimer();

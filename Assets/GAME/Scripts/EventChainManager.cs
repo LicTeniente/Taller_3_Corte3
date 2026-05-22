@@ -86,6 +86,7 @@ public class EventChainManager : MonoBehaviour
 
     public void TryPortal2()
     {
+        Debug.Log("TryPortal2 llamado - portal2Active: " + portal2Active);
         if (transitioning || !portal2Active) return;
         transitioning = true;
         StartCoroutine(GoToScene(victorySceneName, portal2WhooshSound, 1.5f));
@@ -98,6 +99,9 @@ public class EventChainManager : MonoBehaviour
 
         if (fadeCanvasGroup != null)
         {
+            // Cambia a blanco para efecto ceguera
+            var img = fadeCanvasGroup.GetComponent<UnityEngine.UI.Image>();
+            if (img != null) img.color = Color.white;
             float t = 0f;
             while (t < fadeDuration) { t += Time.deltaTime; fadeCanvasGroup.alpha = Mathf.Clamp01(t / fadeDuration); yield return null; }
         }
@@ -163,6 +167,7 @@ public class EventChainManager : MonoBehaviour
     {
         yield return new WaitForSeconds(0.5f);
         portal2Active = true;
+        Debug.Log("Portal 2 activado - mesh: " + (portal2Mesh != null));
         SetPortalVisible(portal2Mesh, portal2Particles, portal2Light, true);
         if (portal2EpicSound != null) audioSource.PlayOneShot(portal2EpicSound);
     }

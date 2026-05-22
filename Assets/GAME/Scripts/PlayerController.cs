@@ -106,13 +106,17 @@ public class PlayerController : MonoBehaviour
         Vector3 dir = (transform.right * h + transform.forward * v).normalized;
 
         if (controller.isGrounded && verticalVelocity < 0)
+        {
             verticalVelocity = -2f;
+            animator?.SetBool("Jump", false);
+        }
         else
             verticalVelocity += gravity * Time.deltaTime;
 
         if (jumpRequested)
         {
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            animator?.SetBool("Jump", true);
             jumpRequested = false;
         }
 
@@ -124,8 +128,9 @@ public class PlayerController : MonoBehaviour
         if (animator != null)
         {
             animator.SetFloat("Speed", mag * speed);
-            animator.SetBool("IsRunning", isSprinting && mag > 0.1f);
-            animator.SetBool("IsGrounded", controller.isGrounded);
+            animator.SetFloat("MotionSpeed", mag > 0.1f ? 1f : 0f);
+            animator.SetBool("Grounded", controller.isGrounded);
+            animator.SetBool("FreeFall", !controller.isGrounded && verticalVelocity < -2f);
         }
     }
 
